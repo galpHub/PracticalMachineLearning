@@ -49,12 +49,13 @@ test <- read.csv("pml-testing.csv",stringsAsFactors=FALSE)
 users <- unique(train$user_name)
 userId <- 1:6; names(userId)<- users
 train$user_name <- userId[train$user_name]
+test$user_name <- userId[test$user_name]
 
 # Change exercise labels to numerical labels
 exerciseId <- 1:5; exercises <- unique(train$classe)
 names(exerciseId) <- exercises
 train$classe <- exerciseId[train$classe]
-
+# Test cases dont have classe values; test$classe <- exerciseId[test$classe]
 
 
 # Parse the daily timestamps.
@@ -62,11 +63,22 @@ times <- sapply(1:dim(train)[1],function(i)paste0(train$raw_timestamp_part_1[i],
                                                   ".",
                                                   train$raw_timestamp_part_2[i],
                                                   collapse="")   )
+timesTest <- sapply(1:dim(test)[1],function(i)paste0(test$raw_timestamp_part_1[i],
+                                                  ".",
+                                                  test$raw_timestamp_part_2[i],
+                                                  collapse="")   )
+
 train$timestamp <- as.POSIXct(as.numeric(times), origin="1970-01-01",tz="GMT")
+test$timestamp <- as.POSIXct(as.numeric(timesTest), origin="1970-01-01",tz="GMT")
 
 # Parse time_stamps in order to sort by order of recording and exerciseId
 train$cvtd_timestamp <- parse_date_time(train$cvtd_timestamp,"d!/m!/Y! H!:M!")
 train <- train[order(train$cvtd_timestamp,train$user_name,train$classe,train$timestamp),]
+
+test$cvtd_timestamp <- parse_date_time(test$cvtd_timestamp,"d!/m!/Y! H!:M!")
+# Note that reordering is performed on the test data, and this also permutes the
+# problem_id labels required for later comparison.
+test <- test[order(test$cvtd_timestamp,test$user_name,test$timestamp),]
 ```
 
 ## Feature creation and omission
@@ -221,6 +233,28 @@ Though this variation can be removed from the analyzed subjects (albeit
 at the cost of some work to decide how to algorithmically do so), it still impairs
 our ability to generalize to a new subject outside the study because we would need a real-time correction algorithm to account for the subjects orientation. Probably the most efficient way to do this would be to have the reference sensor treat the starting
 position as yaw == 0 instead of trying to solve this algorithmically.
+
+## Prediction results
+We now apply our machine learning algorithm to the data by performing the same
+operations that we used on the training set (except row permutations). Below is
+the code that does this for the test data after going through the same data
+preparation as with the training data (see Section `Data preparation` for more 
+details).
+
+```r
+testA <- data.frame(user_name = test$user_name,problem_id = test$problem_id)
+for(name in rawvarNames){
+      newnameCos <- paste0("Cos_",name,collapse="")
+      newnameSin <- paste0("Sin_",name,collapse="")
+      newvars <- toCircle(test[name])
+      testA[newnameCos] <- newvars[,1]
+      testA[newnameSin] <- newvars[,2]
+}
+
+# Predicting by names of the exercise classe - reordering by problem_id for
+# correctness of comparison.
+answers <- names(exerciseId)[predict(rf_model,newdata=testA)[order(test$problem_id)]]
+```
 
 ## References
 
