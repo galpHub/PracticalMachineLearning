@@ -231,7 +231,7 @@ for(name in rawvarNames){
 
 # Predicting by names of the exercise classe - reordering by problem_id for
 # correctness of comparison.
-answers &lt;- names(exerciseId)[predict(rf_model,newdata=testA)[order(test$problem_id)]]</code></pre>
+answers &lt;- names(exerciseId)[predict(rf_model,newdata=testA)[order(testA$problem_id)]]</code></pre>
 </div>
 <div id="references" class="section level2">
 <h2>References</h2>

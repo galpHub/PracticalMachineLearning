@@ -202,7 +202,7 @@ for(name in rawvarNames){
 
 # Predicting by names of the exercise classe - reordering by problem_id for
 # correctness of comparison.
-answers <- names(exerciseId)[predict(rf_model,newdata=testA)[order(test$problem_id)]]
+answers <- names(exerciseId)[predict(rf_model,newdata=testA)[order(testA$problem_id)]]
 ```
 
 ## References
